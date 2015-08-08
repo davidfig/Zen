@@ -32,6 +32,10 @@ module.exports =
       description: 'Keeps the cursor vertically centered where possible.'
       type: 'boolean'
       default: false
+    noBracketMatcher:
+      description: "Disables bracket matcher when Zen is active."
+      type: 'boolean'
+      default: false
 
   activate: (state) ->
     atom.commands.add 'atom-workspace', 'zen:toggle', => @toggle()
@@ -46,6 +50,7 @@ module.exports =
     width = atom.config.get 'Zen.width'
     softWrap = atom.config.get 'Zen.softWrap'
     typewriter = atom.config.get 'Zen.typewriter'
+    noBracketMatcher = atom.config.get 'Zen.noBracketMatcher'
 
     if body.getAttribute('data-zen') isnt 'true'
 
@@ -106,6 +111,14 @@ module.exports =
                   @halfScreen = Math.floor(editor.getRowsPerPage() / 2)
                   @cursor = editor.getCursorScreenPosition()
                   editor.setScrollTop(editor.getLineHeightInPixels() * (@cursor.row - @halfScreen))
+
+      @bracketMatcherReset = false
+      if noBracketMatcher
+          if atom.config.get('bracket-matcher.autocompleteBrackets')
+              atom.config.set('bracket-matcher.autocompleteBrackets', false)
+              @bracketMatcherReset = true
+
+
 
       # Hide TreeView
       if $('.tree-view').length
@@ -172,3 +185,4 @@ module.exports =
       @paneChanged?.dispose()
       @lineChanged?.dispose()
       atom.config.set('editor.scrollPastEnd', false) if @scrollPastEndReset
+      atom.config.set('bracket-matcher.autocompleteBrackets', true) if @bracketMatcherReset
