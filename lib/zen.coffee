@@ -118,8 +118,6 @@ module.exports =
               atom.config.set('bracket-matcher.autocompleteBrackets', false)
               @bracketMatcherReset = true
 
-
-
       # Hide TreeView
       if $('.tree-view').length
         atom.commands.dispatch(
