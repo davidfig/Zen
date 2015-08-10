@@ -7,11 +7,37 @@ module.exports =
     fullscreen:
       type: 'boolean'
       default: true
+      order: 1
+    softWrap:
+      description: 'Enables / Disables soft wrapping when Zen is active.'
+      type: 'boolean'
+      default: atom.config.get 'editor.softWrap'
+      order: 2
+    gutter:
+      description: 'Shows / Hides the gutter when Zen is active.'
+      type: 'boolean'
+      default: false
+      order: 3
+    typewriter:
+      description: 'Keeps the cursor vertically centered where possible.'
+      type: 'boolean'
+      default: false
+      order: 4
+    noBracketMatcher:
+      description: 'Disables bracket matcher when Zen is active.'
+      type: 'boolean'
+      default: false
+      order: 5
+    width:
+      type: 'integer'
+      default: atom.config.get 'editor.preferredLineLength'
+      order: 6
     tabs:
       description: 'Determines the tab style used while Zen is active.'
       type: 'string'
       default: 'hidden'
       enum: ['hidden', 'single', 'multiple']
+      order: 7
     showWordCount:
       description: 'Show the word-count if you have the package installed.'
       type: 'string'
@@ -21,21 +47,7 @@ module.exports =
         'Left',
         'Right'
       ]
-    softWrap:
-      description: 'Enables / Disables soft wrapping when Zen is active.'
-      type: 'boolean'
-      default: atom.config.get 'editor.softWrap'
-    width:
-      type: 'integer'
-      default: atom.config.get 'editor.preferredLineLength'
-    typewriter:
-      description: 'Keeps the cursor vertically centered where possible.'
-      type: 'boolean'
-      default: false
-    noBracketMatcher:
-      description: "Disables bracket matcher when Zen is active."
-      type: 'boolean'
-      default: false
+      order: 8
 
   activate: (state) ->
     atom.commands.add 'atom-workspace', 'zen:toggle', => @toggle()
@@ -50,7 +62,6 @@ module.exports =
     width = atom.config.get 'Zen.width'
     softWrap = atom.config.get 'Zen.softWrap'
     typewriter = atom.config.get 'Zen.typewriter'
-    noBracketMatcher = atom.config.get 'Zen.noBracketMatcher'
 
     if body.getAttribute('data-zen') isnt 'true'
 
@@ -72,15 +83,13 @@ module.exports =
         when 'Hidden'
           body.setAttribute 'data-zen-word-count', 'hidden'
 
+      body.setAttribute 'data-zen-gutter', atom.config.get 'Zen.gutter'
+
       # Enter Mode
       body.setAttribute 'data-zen', 'true'
 
       # Soft Wrap
       # Use zen soft wrapping setting's to override the default settings
-      if atom.config.get('editor.softWrap') isnt softWrap
-        atom.config.set('editor.softWrap', softWrap)
-        # restore default when leaving zen mode
-        @unSetSoftWrap = true
       if editor.isSoftWrapped() isnt softWrap
         editor.setSoftWrapped softWrap
         # restore default when leaving zen mode
@@ -113,10 +122,19 @@ module.exports =
                   editor.setScrollTop(editor.getLineHeightInPixels() * (@cursor.row - @halfScreen))
 
       @bracketMatcherReset = false
-      if noBracketMatcher
-          if atom.config.get('bracket-matcher.autocompleteBrackets')
-              atom.config.set('bracket-matcher.autocompleteBrackets', false)
-              @bracketMatcherReset = true
+      if atom.config.get 'Zen.noBracketMatcher'
+        if atom.config.get 'bracket-matcher.autocompleteBrackets'
+          atom.config.set 'bracket-matcher.autocompleteBrackets', false
+          @bracketMatcherReset = true
+      @bracketMatcherSetting = atom.config.observe 'Zen.noBracketMatcher', =>
+        if atom.config.get 'Zen.noBracketMatcher'
+          if atom.config.get 'bracket-matcher.autocompleteBrackets'
+            atom.config.set 'bracket-matcher.autocompleteBrackets', false
+            @bracketMatcherReset = true
+        else
+          if @bracketMatcherReset
+            atom.config.set 'bracket-matcher.autocompleteBrackets', true
+            @bracketMatcherReset = false
 
       # Hide TreeView
       if $('.tree-view').length
@@ -146,12 +164,8 @@ module.exports =
 
       # Restore previous soft wrap setting when leaving zen mode
       if @unSoftWrap and editor isnt undefined
-        editor.setSoftWrapped (not softWrap)
+        editor.setSoftWrapped(atom.config.get('editor.softWrap'));
         @unSoftWrap = null
-
-      # Reset the config for softwrap when leaving zen mode
-      if @unSetSoftWrap
-        atom.config.set('editor.softWrap', (not softWrap))
 
       # Unset the width
       $('atom-text-editor:not(.mini)').css 'width', ''
@@ -183,4 +197,7 @@ module.exports =
       @paneChanged?.dispose()
       @lineChanged?.dispose()
       atom.config.set('editor.scrollPastEnd', false) if @scrollPastEndReset
-      atom.config.set('bracket-matcher.autocompleteBrackets', true) if @bracketMatcherReset
+      if @bracketMatcherReset
+        atom.config.set 'bracket-matcher.autocompleteBrackets', true
+        @bracketMatcherReset = false
+      @bracketMatcherSetting?.dispose()
