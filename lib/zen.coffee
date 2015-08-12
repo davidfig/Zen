@@ -23,8 +23,8 @@ module.exports =
       type: 'boolean'
       default: false
       order: 4
-    noBracketMatcher:
-      description: 'Disables bracket matcher when Zen is active.'
+    minimap:
+      description: 'Enables / Disables the minimap plugin when Zen is active.'
       type: 'boolean'
       default: false
       order: 5
@@ -48,6 +48,11 @@ module.exports =
         'Right'
       ]
       order: 8
+    noBracketMatcher:
+      description: 'Enables/disables bracket matcher when Zen is active.'
+      type: 'boolean'
+      default: false
+      order: 9
 
   activate: (state) ->
     atom.commands.add 'atom-workspace', 'zen:toggle', => @toggle()
@@ -62,6 +67,7 @@ module.exports =
     width = atom.config.get 'Zen.width'
     softWrap = atom.config.get 'Zen.softWrap'
     typewriter = atom.config.get 'Zen.typewriter'
+    minimap = atom.config.get 'Zen.minimap'
 
     if body.getAttribute('data-zen') isnt 'true'
 
@@ -145,7 +151,7 @@ module.exports =
         @restoreTree = true
 
       # Hide Minimap
-      if $('atom-text-editor /deep/ atom-text-editor-minimap').length
+      if $('atom-text-editor /deep/ atom-text-editor-minimap').length and not minimap
         atom.commands.dispatch(
           atom.views.getView(atom.workspace),
           'minimap:toggle'
@@ -190,7 +196,6 @@ module.exports =
           'minimap:toggle'
         )
         @restoreMinimap = false
-
 
       # Stop listening for pane or font change
       @fontChanged?.dispose()
